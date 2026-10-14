@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Primera Vista · Auditor SEO</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <header class="top">
+    <div class="page">
+      <p class="brand-label">PRIMERA VISTA <span>Auditor SEO</span></p>
+      <p class="page-host" id="host">Analizando…</p>
+      <p class="page-title" id="pageTitle"></p>
+    </div>
+    <button id="rerun" class="ghost" type="button">Analizar de nuevo</button>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Secciones del informe">
+    <button role="tab" id="tab-resumen" aria-controls="view" aria-selected="true" data-tab="resumen">Resumen</button>
+    <button role="tab" id="tab-seo" aria-controls="view" aria-selected="false" data-tab="seo" tabindex="-1">SEO</button>
+    <button role="tab" id="tab-estructura" aria-controls="view" aria-selected="false" data-tab="estructura" tabindex="-1">Estructura</button>
+    <button role="tab" id="tab-eeat" aria-controls="view" aria-selected="false" data-tab="eeat" tabindex="-1">E-E-A-T</button>
+    <button role="tab" id="tab-geo" aria-controls="view" aria-selected="false" data-tab="geo" tabindex="-1">GEO/AEO</button>
+    <button role="tab" id="tab-imagenes" aria-controls="view" aria-selected="false" data-tab="imagenes" tabindex="-1">Imágenes</button>
+    <button role="tab" id="tab-contacto" aria-controls="view" aria-selected="false" data-tab="contacto" tabindex="-1">Contacto</button>
+    <button role="tab" id="tab-leads" aria-controls="view" aria-selected="false" data-tab="leads" tabindex="-1">Leads</button>
+  </div>
+
+  <p class="inspection-help">Pasa el cursor para localizar. Pulsa para ir al elemento.</p>
+  <main id="view" role="tabpanel" aria-labelledby="tab-resumen" tabindex="0"></main>
+
+  <footer class="bottom">
+    <button id="copy" class="primary" type="button" disabled>Copiar informe</button>
+    <button id="downloadMd" class="ghost" type="button" disabled title="Descargar como archivo Markdown">Descargar .md</button>
+    <button id="clearHl" class="outline" type="button" hidden>Quitar resaltado</button>
+    <span id="status" role="status" aria-live="polite"></span>
+  </footer>
+
+  <script src="patterns.js"></script>
+  <script src="collect.js"></script>
+  <script src="highlight.js"></script>
+  <script src="geo.js"></script>
+  <script src="analyze.js"></script>
+  <script src="panel.js"></script>
+</body>
+</html>
