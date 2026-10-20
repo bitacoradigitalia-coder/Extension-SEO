@@ -156,7 +156,6 @@ function specFor(c, r) {
     case 'SEO:https': case 'E-E-A-T:https': return banner('Conexión segura', ['Protocolo: ' + d.protocol]);
     case 'SEO:social': return banner('Vista previa al compartir', [og('title', 'og:title'), og('description', 'og:description'), og('image', 'og:image')]);
     case 'SEO:schema': case 'E-E-A-T:org-schema': return banner('Datos estructurados', [d.schema.types.length ? d.schema.types.join(', ') : 'No hay JSON-LD']);
-    case 'SEO:url': return banner('URL de la página', [d.url]);
     case 'SEO:h1': return { id: key, kind: 'headings', levels: [1], label: 'Encabezado H1', noun: 'H1', missing: 'La página no tiene ningún H1.' };
     case 'SEO:hierarchy': return { id: key, kind: 'headings', flagged, label: 'Jerarquía de encabezados', noun: 'encabezados', missing: 'La página no tiene encabezados.' };
     case 'SEO:alt': return { id: key, kind: 'images-no-alt', label: 'Imágenes sin texto alternativo', noun: 'imágenes', missing: 'Todas las imágenes tienen atributo alt.' };
@@ -180,6 +179,8 @@ function specFor(c, r) {
     case 'E-E-A-T:social': return links('Perfiles en redes', 'social', 'enlaces', 'No hay enlaces a redes sociales.', { tag: 'Red social' });
     case 'E-E-A-T:contact': return links('Formas de contacto', 'contact', 'enlaces', 'No hay teléfono, email ni página de contacto.', { tag: 'Contacto' });
     case 'E-E-A-T:address': return { id: key, kind: 'address', label: 'Dirección', noun: 'elemento', missing: 'No hay ninguna etiqueta de dirección en la página.' };
+    case 'LOCAL:address': return { id: key, kind: 'address', label: 'Dirección', noun: 'elemento', missing: 'No se detecta dirección.' };
+    case 'LOCAL:phone': return links('Teléfono', 'contact', 'enlaces', 'No se detectan enlaces telefónicos.', {tag:'Teléfono'});
     case 'E-E-A-T:legal': return links('Páginas legales', 'legal', 'enlaces', 'No hay enlaces a privacidad, aviso legal ni cookies.', { tag: 'Legal' });
     case 'E-E-A-T:about': return links('Sobre nosotros o equipo', 'about', 'enlaces', 'No hay enlace a «sobre nosotros» ni equipo.', { tag: 'Quiénes somos' });
     case 'E-E-A-T:dates': return { id: key, kind: 'dates', label: 'Fechas', noun: 'fechas', missing: 'No se ve ninguna fecha en la página.' };
@@ -242,7 +243,8 @@ const VIEWS = {
     const fixes = topFixes(r);
     return '<div class="scores">' +
       scoreCard('SEO técnico', 'Título, descripción, encabezados, enlaces…', r.seo.score) +
-      scoreCard('E-E-A-T', 'Señales visibles de confianza', r.eeat.score) + '</div>' +
+      scoreCard('E-E-A-T', 'Señales visibles de confianza', r.eeat.score) +
+      scoreCard('Local', 'Señales de SEO local', r.local.score) + '</div>' +
       '<h2 class="section-title">Qué arreglar primero</h2>' +
       (fixes.length ? checkList(fixes, true) : '<p class="note">No hay fallos importantes. Buen trabajo.</p>') +
       '<p class="note">Pulsa cualquier punto para verlo resaltado en la web. Google no publica una puntuación de E-E-A-T: esta mide lo que se ve en la página, y los enlaces de otras webs o las menciones externas no se pueden comprobar desde aquí.</p>';
@@ -289,6 +291,11 @@ const VIEWS = {
       '<dl class="facts image-facts"><dt>Formularios</dt><dd>' + review.forms.total + '</dd><dt>De contacto</dt><dd>' + review.forms.contact + '</dd><dt>CTA reconocibles</dt><dd>' + review.forms.ctas + '</dd><dt>Vías visibles</dt><dd>' + esc(review.methods.join(', ') || 'Ninguna detectada') + '</dd></dl>' +
       '<ul class="review-list">' + review.issues.map((item) => '<li class="review-item"><strong>' + esc(item[0]) + '</strong><p>' + esc(item[1]) + '</p></li>').join('') + '</ul>' +
       '<p class="note">Esta comprobación detecta señales visibles; no envía formularios ni verifica que el destino funcione.</p>';
+  },
+
+  local(r) {
+    return '<h2 class="section-title">SEO local (' + r.local.score + '/100)</h2>' + checkList(r.local.checks) +
+      '<p class="note">Estas comprobaciones detectan señales en esta página. No verifican la ficha de Google, la coherencia en otros directorios ni la exactitud de los datos.</p>';
   },
 
   geo(r) {

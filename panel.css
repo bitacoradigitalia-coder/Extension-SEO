@@ -189,6 +189,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 button.outline { padding: 7px 12px; border: 1px solid var(--ink); border-radius: 6px; background: transparent; font-weight: 600; }
 button.outline:hover { background: var(--ink); color: var(--white); }
 #status { color: var(--ink); font-size: 12px; font-weight: 600; }
+.footer-brand { margin-left: auto; color: var(--sub); font-size: 11px; text-decoration: none; white-space: nowrap; }
+.footer-brand:hover { color: var(--ink); }
 
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 

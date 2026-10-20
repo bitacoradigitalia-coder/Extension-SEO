@@ -6,7 +6,7 @@ function buildReport(d) {
     h.flag = !h.text ? 'Encabezado vacío' : previous && h.level > previous + 1 ? 'Salto de nivel' : '';
     previous = h.level;
   });
-  const check = (area, id, label, ok, detail, tip, uncertain = false) => ({area, id, label, status: ok ? 'pass' : uncertain ? 'warn' : 'fail', detail, tip});
+  const check = (area, id, label, ok, detail, tip, uncertain = false, fallback = 'warn') => ({area, id, label, status: ok ? 'pass' : uncertain ? fallback : 'fail', detail, tip});
   const seo = (id, label, ok, detail, tip, uncertain) => check('SEO', id, label, ok, detail, tip, uncertain);
   const h1 = d.headings.filter(h => h.level === 1).length;
   const lengthGuide = (value, min, max) => {
@@ -18,16 +18,19 @@ function buildReport(d) {
     seo('title', 'Título SEO', !!d.title, lengthGuide(d.title, 30, 60), 'Añade un título descriptivo y específico. Como orientación, usa 30–60 caracteres sin sacrificar claridad.'),
     seo('description', 'Meta descripción', !!d.description, lengthGuide(d.description, 120, 160), 'Resume la propuesta de esta página. Como orientación, usa 120–160 caracteres sin rellenar texto.', true),
     seo('canonical', 'URL canónica', !!d.canonical, d.canonical || 'No declarada.', 'Revisa si necesita una URL canónica.', true),
+    seo('canonical-self', 'Canonical apunta a esta página', !d.canonical || d.canonicalMatches, d.canonical ? (d.canonicalMatches ? 'La canonical apunta a esta página.' : 'Canonical declarada: ' + d.canonical) : 'No hay canonical declarada.', 'Comprueba si la canónica declarada es la correcta.', true),
+    {area:'SEO', id:'hreflang', label:'Versiones por idioma', status:d.hreflang > 0 ? 'pass' : 'info', detail:d.hreflang > 0 ? d.hreflang + ' alternates hreflang detectados.' : 'No se detectan hreflang. No se puede determinar si la web ofrece otras versiones lingüísticas.', tip:'Declara alternates hreflang si la web tiene versiones en varios idiomas.'},
     seo('lang', 'Idioma', !!d.lang, d.lang || 'No declarado.', 'Declara el idioma del documento.'),
     seo('viewport', 'Adaptación a móvil', d.viewport, d.viewport ? 'Meta viewport presente; no verifica el diseño móvil.' : 'Meta viewport ausente.', 'Añade una meta viewport.'),
     seo('indexable', 'Indexación declarada', !d.noindex, d.noindex ? 'Meta robots contiene noindex.' : 'No se detecta noindex en las metas; robots.txt y cabeceras no comprobados.', 'Comprueba si la exclusión es intencionada.', true),
     seo('https', 'Conexión HTTPS', d.protocol === 'https:', d.protocol, 'Activa el certificado SSL del dominio y redirige las URLs HTTP a HTTPS.'),
-    seo('social', 'Vista previa al compartir', !!(d.og.title && d.og.description && d.og.image), 'Se revisan og:title, og:description y og:image.', 'Completa las etiquetas Open Graph.', true),
+    seo('social', 'Vista previa al compartir', !!(d.og.title && d.og.description && d.og.image), 'Se revisan og:title, og:description y og:image.' + (d.twitter.card ? ' · twitter:card: ' + d.twitter.card : ''), 'Completa las etiquetas Open Graph.', true),
+    seo('mixed-content', 'Recursos con contenido mixto', d.mixed === 0, d.mixed + ' recursos cargados por HTTP en página HTTPS.', 'Sirve todos los recursos por HTTPS.'),
     seo('schema', 'Datos estructurados', d.schema.types.length > 0 && !d.schema.invalid, d.schema.types.join(', ') || 'No se detecta JSON-LD.', 'Revisa los datos estructurados apropiados para el negocio.', true),
     seo('h1', 'Encabezado H1', h1 === 1, h1 + ' H1 encontrados; varios H1 no implican por sí solos una penalización.', 'Revisa el encabezado principal y la organización del contenido.', true),
     seo('hierarchy', 'Jerarquía H1–H6', d.headings.length > 0 && !d.headings.some(h => h.flag), d.headings.length + ' encabezados.', 'Revisa encabezados vacíos y saltos de nivel.', true),
     seo('alt', 'Texto alternativo de imágenes', d.images.noAlt === 0, d.images.noAlt + ' imágenes sin atributo alt. Un alt vacío puede ser correcto en imágenes decorativas.', 'Describe las imágenes informativas y usa alt vacío en las decorativas.'),
-    seo('img-lazy', 'Carga diferida de imágenes', d.images.total <= 2 || d.images.lazy > 0, d.images.lazy + ' de ' + d.images.total + ' imágenes con loading="lazy".', 'Añade loading="lazy" a las imágenes secundarias bajo el primer pantallazo.', true),
+    seo('img-lazy', 'Carga diferida de imágenes', d.images.total <= 2 || d.images.lazy >= Math.max(2, d.images.total - 3), d.images.lazy + ' de ' + d.images.total + ' con carga diferida.', 'Añade loading="lazy" a las imágenes secundarias bajo el primer pantallazo.', true),
     seo('img-dim', 'Dimensiones de imágenes', d.images.missingDimensions === 0, d.images.missingDimensions === 0 ? 'Todas declaran dimensiones explícitas.' : d.images.missingDimensions + ' de ' + d.images.total + ' imágenes sin width/height.', 'Declara width y height en las etiquetas img para evitar saltos de diseño (CLS).', true),
     seo('perf', 'Respuesta del servidor y scripts', !d.performance || !d.performance.ttfb || d.performance.ttfb < 800, (d.performance && d.performance.ttfb ? d.performance.ttfb + ' ms TTFB.' : 'Medición local.') + (d.performance && d.performance.renderBlockingScripts > 0 ? ' ' + d.performance.renderBlockingScripts + ' scripts bloqueantes en <head>.' : ''), 'Difiere scripts con defer, async o type="module" y optimiza el tiempo de respuesta.', true),
     seo('length', 'Contenido principal', d.words > 0, d.words + ' palabras. No existe un mínimo universal para posicionar.', 'Comprueba si responde a la intención de búsqueda.', true),
@@ -65,7 +68,7 @@ function buildReport(d) {
       ee('depth','Contenido',d.words > 0,d.words + ' palabras; profundidad pendiente de revisión humana.')]},
     {name:'Autoridad', en:'Authoritativeness', checks:[
       ee('press','Premios y prensa',d.awardHits > 0,d.awardHits + ' menciones detectadas.'),
-      ee('sources','Fuentes externas',d.citations > 0,d.citations + ' enlaces; enlazar no garantiza autoridad.'),
+      ee('sources','Fuentes externas',d.citations > 0,d.citations + ' enlaces externos, de los cuales ' + d.authCitations + ' a dominios de autoridad (.gov/.edu, entre otros); enlazar no garantiza autoridad.'),
       ee('social','Perfiles sociales',d.social.length > 0,d.social.join(', ') || 'No detectados.')]},
     {name:'Confianza', en:'Trust', checks:[
       ee('reviews','Reseñas y testimonios',d.reviewHits > 0 || d.schema.hasReview,d.reviewHits + ' menciones; autenticidad no verificada.'),
@@ -80,24 +83,29 @@ function buildReport(d) {
   const score = items => Math.round(100 * items.filter(c => c.status === 'pass').length / items.length);
   pillars.forEach(p => p.score = score(p.checks));
   const eeChecks = pillars.flatMap(p => p.checks);
-  return {data:d, geo:buildGeoReport(d), seo:{score:score(checks), checks}, eeat:{score:score(eeChecks), checks:eeChecks, pillars}};
+  const local = [
+    check('LOCAL', 'business-schema', d.local.businessSchema, d.local.businessSchema ? 'Se detecta un tipo de negocio u organización en JSON-LD.' : 'No se detectan tipos de negocio local en JSON-LD.', 'Añade datos estructurados solo si describen información visible y real.', true),
+    check('LOCAL', 'address', d.local.hasAddress, d.local.hasAddress ? 'Se detecta dirección en la página o en JSON-LD.' : 'No se detecta dirección.', 'Si atiendes presencialmente, muestra una dirección actual y coherente con tu ficha.', true),
+    check('LOCAL', 'phone', d.local.hasPhone, d.local.hasPhone ? d.contact.tel + ' enlaces telefónicos.' : 'No se detecta enlace telefónico.', 'Muestra un teléfono de contacto y comprueba que el enlace tel: funciona.', true),
+    check('LOCAL', 'map', d.local.mapEmbed || d.local.gbpLink, d.local.mapEmbed ? 'Se detecta un mapa embebido.' : d.local.gbpLink ? 'Se detecta un enlace a Google Maps o ficha de Google.' : 'No se detecta mapa ni enlace a Google Maps.', 'Añade un mapa o enlace a la ficha solo si ayuda a encontrar el negocio.', true),
+    check('LOCAL', 'nap', d.local.napVisible, d.local.napVisible ? 'Se detectan dirección y teléfono visibles; su coherencia entre plataformas no se verifica.' : 'No se detectan juntos dirección y teléfono visibles.', 'Mantén nombre, dirección y teléfono coherentes; esta extensión solo comprueba señales de esta página.', true),
+    check('LOCAL', 'booking', d.local.reservaLink, d.local.reservaLink ? 'Se detecta un enlace o botón de reserva, cita o agenda.' : 'No se detecta un acceso a reservas o citas.', 'Si el negocio trabaja con citas, facilita un enlace de reserva que funcione.', true)
+  ];
+  return {data:d, geo:buildGeoReport(d), seo:{score:score(checks), checks}, eeat:{score:score(eeChecks), checks:eeChecks, pillars}, local:{score:score(local), checks:local}};
 }
 function verdictOf(score) { return {label:score >= 80 ? 'Muchas señales presentes' : score >= 50 ? 'Revisión recomendada' : 'Pocas señales detectadas'}; }
-function topFixes(r) { return [...r.seo.checks, ...r.eeat.checks].filter(c => c.status !== 'pass').slice(0, 6); }
+function topFixes(r) { return [...r.seo.checks, ...r.eeat.checks, ...r.local.checks].filter(c => c.status !== 'pass').slice(0, 6); }
 function toMarkdown(r) {
-  return '# Primera Vista · Auditoría orientativa\n\n' + r.data.url + '\n\nSEO: ' + r.seo.score + '/100\nSeñales E-E-A-T: ' + r.eeat.score + '/100 (no es una puntuación de Google)\n\n' + [...r.seo.checks,...r.eeat.checks].map(c => '- [' + c.status + '] ' + c.area + ' · ' + c.label + ': ' + c.detail + (c.status !== 'pass' ? '\n  Qué mejorar: ' + c.tip : '')).join('\n');
-}
-const toMarkdownBase = toMarkdown;
-toMarkdown = function(r) {
   const lines = list => list.map(c => '- [' + c.status + '] ' + c.label + ': ' + c.detail + (c.tip && (c.status === 'warn' || c.status === 'fail') ? '\n  Qué revisar: ' + c.tip : '')).join('\n');
-  return toMarkdownBase(r) + '\n\n## GEO/AEO · Señales observables\n\nSin puntuación de visibilidad ni garantía de citas en IA.\n\n### GEO\n' + lines(r.geo.geo) + '\n\n### AEO\n' + lines(r.geo.aeo) + '\n\nNo se consultan motores de IA, robots.txt, cabeceras HTTP ni indexación real.';
-};
-
+  const all = [...r.seo.checks, ...r.eeat.checks, ...r.local.checks];
+  return '# Primera Vista — Auditoría orientativa\n\n' + r.data.url + '\n\nSEO: ' + r.seo.score + '/100\nSeñales E-E-A-T: ' + r.eeat.score + '/100 (no es una puntuación de Google)\nLocal: ' + r.local.score + '/100\n\n' + all.map(c => '- [' + c.status + '] ' + c.area + ' · ' + c.label + ': ' + c.detail + (c.status !== 'pass' ? '\n  Qué mejorar: ' + c.tip : '')).join('\n') + '\n\n## GEO/AEO · Señales observables\n\nSin puntuación de visibilidad ni garantía de citas en IA.\n\n### GEO\n' + lines(r.geo.geo) + '\n\n### AEO\n' + lines(r.geo.aeo) + '\n\nNo se consultan motores de IA, robots.txt, cabeceras HTTP ni indexación real.\n\nInforme generado con Primera Vista · Auditor SEO — https://primeravista.es';
+}
 function buildLead(r, settings) {
   const fixes = r.seo.checks.filter(c => c.status === 'fail').slice(0, 3);
   if (!fixes.length) return null;
   const issues = fixes.map(c => '• ' + c.label + ': ' + c.detail).join('\n');
-  const text = 'Hola, soy ' + (settings.name || 'Primera Vista') + '. Revisando vuestra web encontré unos puntos que convendría comprobar:\n\n' + issues + '\n\n¿Quién lleva la web para comentárselo?' + (settings.web ? '\n\n' + settings.web : '');
+  const signature = '\\n\\n\\u2014 ' + (settings.name || 'Primera Vista') + ' \\u00b7 ' + (settings.web || 'https://primeravista.es');
+  const text = 'Hola, soy ' + (settings.name || 'Primera Vista') + '. Revisando vuestra web encontré unos puntos que convendría comprobar:\\n\\n' + issues + '\\n\\n¿Quién lleva la web para comentárselo?' + signature;
   return {count:fixes.length, subject:'Una consulta sobre vuestra web', email:text, short:text};
 }
 function whatsappNumber(found) { return (found.whatsapp || '').replace(/\D/g, ''); }

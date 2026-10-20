@@ -125,7 +125,10 @@ function collectPage(cfg) {
 
   // --- Estructura semántica / Tabla de contenidos (GEO)
   const hasToc = !!qs('nav[class*="toc" i], [id*="toc" i], [class*="table-of-contents" i], nav[aria-label*="índice" i], nav[aria-label*="content" i]');
-  const sectionAnchors = qsa('a[href^="#"]:not([href="#"]):not([href="#top"]):not([href=""])').length;
+  const sectionAnchors = qsa('a[href^="#"]:not([href="#"]):not([href="#top"]):not([href=""])').filter(a => {
+    const target = document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));
+    return !!target && !!target.closest('main,article,section');
+  }).length;
 
   // --- Canonical, robots, contenido mixto
   const can = qs('link[rel="canonical" i]');
@@ -150,6 +153,14 @@ function collectPage(cfg) {
     const p = a.getAttribute('href').replace(/^tel:/i, '').replace(/[^\d+]/g, '');
     if (p.replace(/\D/g, '').length >= 9) phones.add(p);
   });
+  const localTypes = /LocalBusiness|Organization|Store|Dentist|Clinic|Restaurant|ProfessionalService/i;
+  const businessSchema = Array.from(types).some(t => localTypes.test(t));
+  const hasAddress = !!qs('address') || keys.has('address') || /\b(calle|c\/|avenida|avda\.?|carrer|paseo|passeig|plaza|street|avenue)\s+[^\n\d]{2,40}?,?\s*(n[ºo.]?\s*)?\d{1,4}\b/i.test(fullText);
+  const mapEmbed = qsa('iframe[src*="google.com/maps"], iframe[src*="maps.google"]').length > 0;
+  const gbpLink = qsa('a[href]').some(a => /google\.com\/maps|g\.page/i.test(a.href) || /google business|ficha de google/i.test(clean(a.innerText || a.textContent)));
+  const visibleAddress = /\b(calle|c\/|avenida|avda\.?|carrer|paseo|passeig|plaza|street|avenue)\s+[^\n\d]{2,40}?,?\s*(n[ºo.]?\s*)?\d{1,4}\b/i.test(fullText);
+  const visiblePhone = (fullText.match(/(?:\+?\d[\d ().-]{7,}\d)/g) || []).some(p => p.replace(/\D/g, '').length >= 9);
+  const reservaLink = qsa('a[href], button').some(el => /reserv|cita|agenda/i.test((el.href || '') + ' ' + clean(el.innerText || el.textContent)));
   let whatsapp = '';
   qsa('a[href*="wa.me"],a[href*="api.whatsapp.com"],a[href*="web.whatsapp.com"]').forEach((a) => {
     if (whatsapp) return;
@@ -252,6 +263,7 @@ function collectPage(cfg) {
       page: has(new RegExp(P.contact)),
       address: !!qs('address') || keys.has('address') || /\b(calle|c\/|avenida|avda\.?|carrer|paseo|passeig|plaza|street|avenue)\s+[^\n\d]{2,40}?,?\s*(n[ºo°.]?\s*)?\d{1,4}\b/.test(fullText)
     },
+    local: { businessSchema, hasAddress, hasPhone: qsa('a[href^="tel:" i]').length > 0, mapEmbed, gbpLink, napVisible: visibleAddress && visiblePhone, reservaLink },
     found: { emails: Array.from(emails).slice(0, 3), phones: Array.from(phones).slice(0, 3), whatsapp },
     aboutLink: has(new RegExp(P.about)),
     mixed,
