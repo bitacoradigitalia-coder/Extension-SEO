@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 - 2026-11-10
+- Agrupadas las comprobaciones en diez areas del diagnostico y corregido el calculo para excluir señales informativas.
+- Añadidos robots.txt/llms.txt del mismo dominio, sintaxis JSON-LD, URL, favicon, accesibilidad basica y señales WebMCP.
+- Añadida una revision editorial opcional con Gemini, iniciada por el usuario y con permiso de red solicitado solo al usarla.
+- El informe exportado incluye las diez areas y, si se ejecuto, el resultado de la revision asistida por IA.
+- Reducidos los permisos de acceso y documentados los datos enviados a Google al usar la opcion de IA.
+- Corregidos saltos de linea y firma en el mensaje sugerido para Leads.
+
 ## 1.4.0 — 2026-10-20
 - Añadida la pestaña Local con puntuación y comprobaciones de schema, dirección, teléfono, mapas, NAP y reservas.
 - Incorporadas comprobaciones de hreflang, contenido mixto y canonical autorreferente; ampliados los detalles de redes y fuentes de autoridad.

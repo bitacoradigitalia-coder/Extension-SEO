@@ -4,6 +4,8 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 let report = null;
 let current = 'resumen';
 let settings = { name: '', web: '' };
+let aiSettings = { apiKey: '', keyword: '' };
+let aiReview = null;
 let dirty = { email: false, short: false };
 let specs = [];          // resaltados disponibles en la vista actual
 let activeId = null;     // resaltado que está puesto ahora en la web
@@ -62,8 +64,9 @@ const ICONS = {
 /* ---------- Ajustes (tu nombre y tu web) ---------- */
 async function loadSettings() {
   try {
-    const stored = await chrome.storage.local.get('settings');
+    const stored = await chrome.storage.local.get(['settings','aiSettings']);
     if (stored.settings) settings = { ...settings, ...stored.settings };
+    if (stored.aiSettings) aiSettings = { ...aiSettings, ...stored.aiSettings };
   } catch (e) { /* sin almacenamiento: se usan los valores vacíos */ }
 }
 function saveSettings() {
@@ -216,10 +219,12 @@ async function clearHighlight() {
 
 /* ---------- Piezas de interfaz ---------- */
 function scoreCard(name, sub, score) {
-  const v = verdictOf(score);
+  const hasScore = Number.isFinite(score);
+  const value = hasScore ? score : 'N/D';
+  const v = hasScore ? verdictOf(score) : {label:'Sin datos evaluables'};
   return '<div class="score"><p class="score-name">' + esc(name) + '</p>' +
-    '<p class="score-num"><strong>' + score + '</strong><span>/100</span></p>' +
-    '<div class="bar" role="img" aria-label="' + score + ' de 100"><i style="width:' + score + '%"></i></div>' +
+    '<p class="score-num"><strong>' + value + '</strong><span>' + (hasScore ? '/100' : '') + '</span></p>' +
+    '<div class="bar" role="img" aria-label="' + (hasScore ? score + ' de 100' : 'Sin datos evaluables') + '"><i style="width:' + (hasScore ? score : 0) + '%"></i></div>' +
     '<p class="score-verdict">' + v.label + '</p><p class="score-sub">' + esc(sub) + '</p></div>';
 }
 
@@ -245,6 +250,7 @@ const VIEWS = {
       scoreCard('SEO técnico', 'Título, descripción, encabezados, enlaces…', r.seo.score) +
       scoreCard('E-E-A-T', 'Señales visibles de confianza', r.eeat.score) +
       scoreCard('Local', 'Señales de SEO local', r.local.score) + '</div>' +
+      '<h2 class="section-title">Diez áreas del diagnóstico</h2><div class="area-grid">' + (r.areas || []).map(a => '<div class="area-card"><strong>' + esc(a.name) + '</strong><span>' + (a.score == null ? 'N/D' : a.score + '/100') + '</span></div>').join('') + '</div>' +
       '<h2 class="section-title">Qué arreglar primero</h2>' +
       (fixes.length ? checkList(fixes, true) : '<p class="note">No hay fallos importantes. Buen trabajo.</p>') +
       '<p class="note">Pulsa cualquier punto para verlo resaltado en la web. Google no publica una puntuación de E-E-A-T: esta mide lo que se ve en la página, y los enlaces de otras webs o las menciones externas no se pueden comprobar desde aquí.</p>';
@@ -296,6 +302,15 @@ const VIEWS = {
   local(r) {
     return '<h2 class="section-title">SEO local (' + r.local.score + '/100)</h2>' + checkList(r.local.checks) +
       '<p class="note">Estas comprobaciones detectan señales en esta página. No verifican la ficha de Google, la coherencia en otros directorios ni la exactitud de los datos.</p>';
+  },
+
+  auditoria(r) {
+    return '<h2 class="section-title">Auditoría por áreas</h2><p class="note">Los porcentajes solo consideran comprobaciones evaluables; las señales informativas quedan fuera. No equivalen a una puntuación de Google.</p>' + (r.areas || []).map(a => '<section class="pillar"><div class="pillar-head"><h2 class="pillar-name">' + esc(a.name) + '</h2><span class="pillar-score">' + (a.score == null ? 'N/D' : a.score + '/100') + '</span></div><div class="bar"><i style="width:' + (a.score == null ? 0 : a.score) + '%"></i></div>' + (a.checks.length ? checkList(a.checks) : '<p class="note">Sin señales evaluables en esta página.</p>') + '</section>').join('');
+  },
+
+  contenido(r) {
+    const review = aiReview ? '<h2 class="section-title">Revisión de contenido</h2><ul class="review-list">' + aiReview.map(x => '<li class="review-item"><strong>' + esc(x.title) + '</strong><p>' + esc(x.finding) + '</p><p><b>Qué revisar:</b> ' + esc(x.action) + '</p></li>').join('') + '</ul>' : '<p class="note">Aún no se ha ejecutado una revisión con IA.</p>';
+    return '<h2 class="section-title">Análisis opcional con IA</h2><label class="field"><span>Clave de Gemini API</span><input id="aiKey" type="password" autocomplete="off" value="' + esc(aiSettings.apiKey) + '" placeholder="Pega tu clave API"></label><label class="field"><span>Consulta o palabra clave objetivo (opcional)</span><input id="aiKeyword" type="text" autocomplete="off" value="' + esc(aiSettings.keyword) + '" placeholder="Ej. clínica dental en Valencia"></label><p class="note">Solo se envían a Google, al pulsar el botón, el título, hasta 12.000 caracteres del contenido principal y la consulta opcional. La clave queda en chrome.storage.local. Revisa las condiciones de datos de tu cuenta de Google AI Studio; Google indica que puede usar datos del nivel gratuito para mejorar sus productos; el nivel facturado indica que no. Revisa sus condiciones antes de enviar contenido sensible.</p><button id="runAi" class="primary" type="button">Analizar contenido con IA</button><p id="aiStatus" class="note" role="status"></p>' + review;
   },
 
   geo(r) {
@@ -388,6 +403,7 @@ function render() {
   view.innerHTML = VIEWS[current](report);
   view.scrollTop = 0;
   if (current === 'leads') wireLeads();
+  if (current === 'contenido') wireAi();
 }
 
 function say(text, ms) {
@@ -427,6 +443,34 @@ function wireLeads() {
       chrome.tabs.create({ url: 'https://wa.me/' + whatsappNumber(d.found) + '?text=' + encodeURIComponent(short.value) });
     }
   }));
+}
+
+function wireAi() {
+  const key = $('#aiKey'), keyword = $('#aiKeyword'), button = $('#runAi');
+  const save = () => { aiSettings = {apiKey:key.value.trim(), keyword:keyword.value.trim()}; chrome.storage.local.set({aiSettings}).catch(() => {}); };
+  key.addEventListener('change', save); keyword.addEventListener('input', save);
+  button.addEventListener('click', async () => {
+    save();
+    const status = $('#aiStatus');
+    if (!aiSettings.apiKey) { status.textContent = 'Añade una clave de Gemini para continuar.'; return; }
+    if (!report.data.contentText) { status.textContent = 'No se encontró texto principal que enviar.'; return; }
+    button.disabled = true; status.textContent = 'Analizando el fragmento local…';
+    try {
+      const granted = await chrome.permissions.request({origins:['https://generativelanguage.googleapis.com/*']});
+      if (!granted) throw new Error('Permiso para conectar con Google AI no concedido.');
+      const prompt = 'Evalúa este contenido web en español. No inventes hechos ni afirmes que puedes verificar fuentes externas. Devuelve exactamente seis observaciones breves: intención de búsqueda, originalidad diferenciadora visible, profundidad/cobertura, afirmaciones que requieren fuente, facilidad para extraer respuestas (estructura), coherencia de marca. Para cada una da title, finding, action. Si falta contexto dilo. Consulta objetivo: ' + (aiSettings.keyword || '(no indicada)') + '\nTítulo: ' + report.data.title + '\nContenido (fragmento limitado):\n' + report.data.contentText;
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent', {method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':aiSettings.apiKey}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{responseMimeType:'application/json', responseSchema:{type:'ARRAY',items:{type:'OBJECT',properties:{title:{type:'STRING'},finding:{type:'STRING'},action:{type:'STRING'}},required:['title','finding','action']}}}})});
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error && payload.error.message || 'Google AI devolvió un error (' + response.status + ').');
+      const text = payload.candidates && payload.candidates[0] && payload.candidates[0].content.parts.map(p=>p.text || '').join('');
+      if (!text) throw new Error('Google no devolvio una revision util.');
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error('La respuesta de Google no tiene el formato esperado.');
+      aiReview = parsed.slice(0, 8);
+      status.textContent = 'Revisión recibida. Es una ayuda editorial, no una comprobación factual.';
+      render();
+    } catch (e) { status.textContent = 'No se pudo completar el análisis: ' + e.message; button.disabled = false; }
+  });
 }
 
 // Pulsar un punto del informe (fila, encabezado o contador) lo resalta en la web.
