@@ -110,16 +110,17 @@ async function run() {
   $('#pageTitle').textContent = tab.title || '';
   try {
     await clearPage(tab);
-    const [{ result }] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: collectPage, args: [PAGE_CONFIG] });
+    const [injection] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: collectPage, args: [PAGE_CONFIG] });
     if (mine !== runId) return;
-    report = buildReport(result);
+    if (!injection || !injection.result) throw new Error('Chrome no devolvió datos de la pestaña. Comprueba los permisos y vuelve a cargar la página.');
+    report = buildReport(injection.result);
     reportTabId = tab.id;
     $('#copy').disabled = false;
     if ($('#downloadMd')) $('#downloadMd').disabled = false;
     render();
   } catch (e) {
     if (mine !== runId) return;
-    showError('No se pudo leer la página', 'Recarga la pestaña y vuelve a intentarlo. También comprueba que la extensión tenga permiso de acceso a este sitio.');
+    showError('No se pudo leer la página', (e && e.message ? e.message + ' ' : '') + 'Haz clic en el icono de Primera Vista desde la pestaña que quieres analizar y vuelve a intentarlo.');
   }
 }
 

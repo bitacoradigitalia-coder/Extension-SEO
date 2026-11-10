@@ -1,6 +1,6 @@
 // Se inyecta en la pestaña activa con chrome.scripting.executeScript.
 // Tiene que ser autocontenida: no puede usar nada definido fuera de esta función.
-async function collectPage(cfg) {
+function collectPage(cfg) {
   const P = cfg.patterns;
   const qs = (s, r = document) => r.querySelector(s);
   const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -137,52 +137,8 @@ async function collectPage(cfg) {
   const mixed = loc.protocol === 'https:'
     ? qsa('img[src^="http:"],script[src^="http:"],iframe[src^="http:"],link[rel="stylesheet"][href^="http:"]').length : 0;
 
-  // Peticiones limitadas al mismo origen y a la raíz del sitio.
-  let robotsTxt = null, llmsTxt = false;
-  const readRootFile = async (name) => {
-    try {
-      const response = await fetch(new URL('/' + name, loc.origin).href, {credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(1800)});
-      if (!response.ok) return '';
-      if (name === 'llms.txt') { if (response.body) await response.body.cancel(); return 'present'; }
-      if (!response.body) return (await response.text()).slice(0, 262144);
-      const reader = response.body.getReader(), decoder = new TextDecoder();
-      let text = '', size = 0;
-      while (size <= 262144) {
-        const part = await reader.read();
-        if (part.done) break;
-        size += part.value.length;
-        if (size > 262144) { await reader.cancel(); return ''; }
-        text += decoder.decode(part.value, {stream:true});
-      }
-      return text + decoder.decode();
-    } catch (e) { return ''; }
-  };
-  try {
-    const [robotsText, llmsText] = await Promise.all([readRootFile('robots.txt'), readRootFile('llms.txt')]);
-    llmsTxt = !!llmsText.trim();
-    if (robotsText) {
-      const agents = ['*','Googlebot','Google-Extended','GPTBot','ClaudeBot','PerplexityBot'];
-      const groups = [];
-      let group = {agents:[], rules:[]};
-      robotsText.split(/\r?\n/).forEach(line => {
-        const m = line.match(/^\s*([^:#]+)\s*:\s*(.*?)\s*$/);
-        if (!m) return;
-        if (/^user-agent$/i.test(m[1])) {
-          if (group.agents.length && group.rules.length) { groups.push(group); group = {agents:[], rules:[]}; }
-          group.agents.push(m[2].toLowerCase());
-        } else if (/^(disallow|allow)$/i.test(m[1])) group.rules.push({kind:m[1].toLowerCase(), path:m[2]});
-      });
-      if (group.agents.length) groups.push(group);
-      const applicable = groups.filter(g => g.agents.some(a => agents.some(x => a === x.toLowerCase())));
-      const path = loc.pathname;
-      const blockedFor = applicable.filter(g => {
-        const agent = g.agents.find(a => a !== '*') || '*';
-        const rules = g.rules.filter(r => r.path && path.startsWith(r.path)).sort((a,b) => b.path.length-a.path.length);
-        return rules.length && rules[0].kind === 'disallow';
-      }).flatMap(g => g.agents);
-      robotsTxt = {blocked:blockedFor.length > 0, agents:blockedFor};
-    }
-  } catch (e) {}
+  // La auditoría principal es síncrona; estas comprobaciones quedan como no evaluadas.
+  const robotsTxt = null, llmsTxt = false;
   const controls = qsa('button,input:not([type="hidden"]),select,textarea,[role="button"],a[href]');
   const unnamedControls = controls.filter(el => !clean(el.getAttribute('aria-label')) && !clean(el.getAttribute('title')) && !clean(el.innerText || el.textContent) && !(el.labels && el.labels.length) && !el.querySelector('img[alt]:not([alt=""])')).length;
 

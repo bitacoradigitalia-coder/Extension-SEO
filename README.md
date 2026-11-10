@@ -4,9 +4,9 @@ Extensión de Chrome Manifest V3 para revisar señales visibles de SEO, E-E-A-T,
 
 ## Privacidad y datos
 
-El análisis de la página se ejecuta en el navegador. En cada revisión, la extension consulta `robots.txt` y `llms.txt` en el mismo dominio de la pestaña; no envia el informe a un servidor. El análisis con IA es opcional y solo se ejecuta al pulsar el boton en la pestaña Contenido. En ese momento se envian a Google Gemini el título, hasta 12.000 caracteres extraidos del contenido principal y la consulta opcional. La clave API se guarda en `chrome.storage.local`. Google indica que puede usar datos del nivel gratuito para mejorar sus productos; el nivel facturado indica que no. Revisa las condiciones antes de enviar contenido sensible.
+El analisis de la pagina se ejecuta localmente. No consulta `robots.txt` ni `llms.txt` en el servidor; esas señales quedan informativas. El informe no se envia a un servidor. El analisis con IA es opcional y solo se ejecuta al pulsar el boton en la pestana Contenido. En ese momento se envian a Google Gemini el titulo, hasta 12.000 caracteres del contenido principal y la consulta opcional. La clave API se guarda en `chrome.storage.local`. Google indica que puede usar datos del nivel gratuito para mejorar sus productos; el nivel facturado indica que no. Revisa las condiciones antes de enviar contenido sensible.
 
-La extension pide acceso a Google AI solo al iniciar esa función. Para el resto del análisis usa el acceso temporal a la pestaña activa. Los ajustes y la clave permanecen en el almacenamiento local del navegador.
+El permiso `activeTab` limita el acceso al sitio de la pestaña desde la que se invoca la extension. Para el analisis con IA, el acceso a Google AI se solicita solo al iniciar esa revision.
 
 ## Instalar o actualizar
 

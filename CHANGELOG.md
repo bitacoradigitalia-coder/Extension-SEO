@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1 - 2026-11-10
+- Conservado el acceso limitado a la pestaña activa; Chrome requiere invocar la extension desde cada pestaña que se quiera analizar.
+- La recogida principal vuelve a ser sincrona; robots.txt y llms.txt quedan informativos para evitar bloquear el informe.
+- Los errores de inyeccion ahora muestran la causa devuelta por Chrome.
+
 ## 1.5.0 - 2026-11-10
 - Agrupadas las comprobaciones en diez areas del diagnostico y corregido el calculo para excluir señales informativas.
 - Añadidos robots.txt/llms.txt del mismo dominio, sintaxis JSON-LD, URL, favicon, accesibilidad basica y señales WebMCP.
