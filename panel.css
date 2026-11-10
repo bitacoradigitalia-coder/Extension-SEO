@@ -1,6 +1,6 @@
 :root {
   --ink: #071A2B;
-  --warm: #F5F2EA;
+  --warm: #FFFFFF;
   --blue: #155EEF;
   --white: #FFFFFF;
   --sub: rgba(7, 26, 43, 0.72);
@@ -36,18 +36,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .page { min-width: 0; }
 .page-host { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.page-title { color: rgba(245, 242, 234, 0.75); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-title { color: rgba(255, 255, 255, 0.75); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ghost {
   flex: none;
   padding: 6px 10px;
-  border: 1px solid rgba(245, 242, 234, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 6px;
   background: transparent;
   color: var(--warm);
   font-size: 12px;
   font-weight: 600;
 }
-.ghost:hover { border-color: var(--warm); background: rgba(245, 242, 234, 0.08); }
+.ghost:hover { border-color: var(--warm); background: rgba(255, 255, 255, 0.08); }
 .top :focus-visible { outline-color: var(--warm); }
 
 /* Pestañas */
