@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.6 - 2026-11-11
+- Eliminado el permiso opcional de Gemini, redundante porque el permiso HTTPS general ya lo incluye.
+- La revisión con IA conserva la llamada explícita al pulsar el botón; no se ejecuta durante la auditoría normal.
+
+## 1.5.5 - 2026-11-11
+- Restaurado el permiso de acceso a páginas HTTP/HTTPS para mantener el análisis automático al cambiar de pestaña.
+
 ## 1.5.1 - 2026-11-10
 - Conservado el acceso limitado a la pestaña activa; Chrome requiere invocar la extension desde cada pestaña que se quiera analizar.
 - La recogida principal vuelve a ser sincrona; robots.txt y llms.txt quedan informativos para evitar bloquear el informe.

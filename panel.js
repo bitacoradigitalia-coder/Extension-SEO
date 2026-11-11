@@ -457,8 +457,6 @@ function wireAi() {
     if (!report.data.contentText) { status.textContent = 'No se encontró texto principal que enviar.'; return; }
     button.disabled = true; status.textContent = 'Analizando el fragmento local…';
     try {
-      const granted = await chrome.permissions.request({origins:['https://generativelanguage.googleapis.com/*']});
-      if (!granted) throw new Error('Permiso para conectar con Google AI no concedido.');
       const prompt = 'Evalúa este contenido web en español. No inventes hechos ni afirmes que puedes verificar fuentes externas. Devuelve exactamente seis observaciones breves: intención de búsqueda, originalidad diferenciadora visible, profundidad/cobertura, afirmaciones que requieren fuente, facilidad para extraer respuestas (estructura), coherencia de marca. Para cada una da title, finding, action. Si falta contexto dilo. Consulta objetivo: ' + (aiSettings.keyword || '(no indicada)') + '\nTítulo: ' + report.data.title + '\nContenido (fragmento limitado):\n' + report.data.contentText;
       const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent', {method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':aiSettings.apiKey}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{responseMimeType:'application/json', responseSchema:{type:'ARRAY',items:{type:'OBJECT',properties:{title:{type:'STRING'},finding:{type:'STRING'},action:{type:'STRING'}},required:['title','finding','action']}}}})});
       const payload = await response.json();

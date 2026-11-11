@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.5.1",
+  "version": "1.5.6",
   "minimum_chrome_version": "114",
   "description": "__MSG_extensionDescription__",
   "icons": {
@@ -16,8 +16,9 @@
     "storage",
     "activeTab"
   ],
-  "optional_host_permissions": [
-    "https://generativelanguage.googleapis.com/*"
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
   ],
   "background": {
     "service_worker": "background.js"
